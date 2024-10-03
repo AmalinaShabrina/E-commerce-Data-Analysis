@@ -1,3 +1,4 @@
+import os
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
@@ -6,25 +7,21 @@ import streamlit as st
 
 sns.set(style='darkgrid')
 
+# Mendapatkan absolute path dari direktori di mana file dashboard.py berada
+current_dir = os.path.dirname(os.path.abspath(__file__))
+
 # Nama file dataset
-orders_file = 'orders_dataset.csv'
-order_items_file = 'order_items_dataset.csv'
+orders_file = os.path.join(current_dir, 'orders_dataset.csv')
+order_items_file = os.path.join(current_dir, 'order_items_dataset.csv')
 
 # Load datasets
 try:
     orders_df = pd.read_csv(orders_file)
     order_items_df = pd.read_csv(order_items_file)
-    st.write("Dataset 'orders_dataset.csv' dan 'order_items_dataset.csv' berhasil dimuat.")
+    st.success("Dataset 'orders_dataset.csv' dan 'order_items_dataset.csv' berhasil dimuat.")
 except Exception as e:
     st.error(f"Gagal memuat dataset: {e}")
     st.stop()
-
-# Menampilkan 5 baris pertama dari setiap dataset
-st.write("5 Baris Pertama dari Dataset Orders:")
-st.write(orders_df.head())
-
-st.write("5 Baris Pertama dari Dataset Order Items:")
-st.write(order_items_df.head())
 
 # Merge datasets on 'order_id'
 try:
@@ -36,13 +33,13 @@ except KeyError as e:
 # Convert 'order_purchase_timestamp' to datetime
 merged_df['order_purchase_timestamp'] = pd.to_datetime(merged_df['order_purchase_timestamp'])
 
-# Menampilkan 5 baris pertama dari merged data
-st.write("5 Baris Pertama dari Data yang Digabungkan:")
-st.write(merged_df.head())
-
-# Mengecek tipe data
-st.write("Informasi Dataset:")
-st.write(merged_df.info())
+# Menampilkan data yang digabungkan dalam tabel interaktif
+st.subheader("Data Gabungan Pesanan dan Item Pesanan")
+st.dataframe(merged_df.head(100).style.format({
+    'price': 'Rp{:,.2f}'.format,   
+    'freight_value': 'Rp{:,.2f}'.format,  
+    'order_purchase_timestamp': '{:%Y-%m-%d %H:%M}'.format
+}).background_gradient(cmap='Blues', subset=['price', 'freight_value']))
 
 # Mengecek data yang hilang
 st.write("Jumlah Data yang Hilang di Setiap Kolom:")
@@ -66,15 +63,14 @@ plt.xlabel('Bulan')
 plt.ylabel('Total Penjualan')
 st.pyplot(plt)
 
-# Visualisasi sederhana menggunakan Streamlit (opsional untuk tes)
-st.line_chart(sales_per_month)
-
 # Menghitung produk terlaris berdasarkan penjualan
 top_products = merged_df.groupby('product_id').agg({'price': 'sum'}).nlargest(5, 'price')
 
 # Menampilkan produk terlaris
 st.subheader("5 Produk Terlaris Berdasarkan Total Penjualan")
-st.write(top_products)
+st.dataframe(top_products.style.format({
+    'price': 'Rp{:,.2f}'.format
+}).background_gradient(cmap='Greens'))
 
 # Visualisasi 5 produk terlaris
 plt.figure(figsize=(10, 6))
@@ -83,8 +79,5 @@ plt.title('Top 5 Produk Terlaris')
 plt.xlabel('Product ID')
 plt.ylabel('Total Penjualan')
 st.pyplot(plt)
-
-# Visualisasi sederhana menggunakan Streamlit (opsional untuk tes)
-st.bar_chart(top_products['price'])
 
 st.caption('By: Amalina Shabrina')
